@@ -4,7 +4,7 @@ use std::{env, fs};
 
 use eframe::egui;
 use egui::Label;
-use crate::model::{self, Model, TrainData};
+use crate::model::{self, Model, TrainData, Vocabulary};
 
 
 
@@ -29,6 +29,8 @@ struct MyApp {
     model_path: Option<String>,
     train_data_loaded: Option<TrainData>,
     train_data_path: Option<String>,
+    vocabulary_path: Option<String>,
+    dimension: usize,
     ephoch_count: usize,
     reference_word: String,
     words_found: Vec<String>,
@@ -41,6 +43,8 @@ impl Default for MyApp {
             model_path: None,
             train_data_loaded: None,
             train_data_path: None,
+            vocabulary_path: None,
+            dimension: 100,
             ephoch_count: 5,
             reference_word: "".to_string(),
             words_found: Vec::new(),
@@ -59,6 +63,19 @@ impl eframe::App for MyApp {
                 }
                 if let Some(path) = self.model_path.clone() {
                     ui.label(format!("current model: {}", path));
+                }
+            });
+
+            ui.collapsing("New model", |ui| {
+                if ui.button("Chose file containing vocabulary").clicked() && let Some(path) = rfd::FileDialog::new().set_directory(env::current_dir().unwrap()).pick_file() {
+                    self.vocabulary_path = Some(path.display().to_string())
+                }
+                ui.add(egui::Slider::new(&mut self.dimension, 1..=500).text("Dimension"));
+
+                if let Some(voc_path) = &self.vocabulary_path {
+                    if ui.button("Create model").clicked() {
+                        self.model_loaded = Some(Model::new(Vocabulary::from_train_data(TrainData::from_string(fs::read_to_string(voc_path).unwrap())), self.dimension))
+                    }
                 }
             });
 
